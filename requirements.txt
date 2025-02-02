@@ -1,0 +1,12 @@
+# requirements.txt
+fastapi
+strawberry-graphql
+uvicorn
+sqlalchemy
+asyncpg
+psycopg2
+python-dotenv
+
+# Para pruebas
+pytest
+httpx
