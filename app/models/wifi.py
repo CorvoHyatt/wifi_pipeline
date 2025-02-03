@@ -1,13 +1,13 @@
 from unittest.mock import Base
-from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy import Column, String, Float
 
 class WifiPoint(Base):
     __tablename__ = "wifi_points"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    address = Column(String, nullable=False)
-    colonia = Column(String, nullable=False)
-    latitude = Column(Float, nullable=False)
-    longitude = Column(Float, nullable=False)
-    status = Column(String, default="activo")  #Opcional: para marcar si el punto está activo o no
+    id = Column(String, primary_key=True, index=True)
+    programa = Column(String, nullable=False)
+    fecha_instalacion = Column(String, nullable=True)
+    latitud = Column(Float, nullable=False)
+    longitud = Column(Float, nullable=False)
+    colonia = Column(String, nullable=True)
+    alcaldia = Column(String, nullable=True)
