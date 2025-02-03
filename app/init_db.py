@@ -15,7 +15,7 @@ async def init_db():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)  # Crea las tablas definidas en los modelos
 
-        logger.info("✅ Base de datos inicializada correctamente.")
+        logger.info("✅ Inicializacion de Base de datos ejecutada correctamente.")
     
     except OperationalError as e:
         logger.error(f"❌ Error de conexión a la base de datos: {str(e)}")

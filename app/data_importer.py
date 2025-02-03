@@ -59,7 +59,8 @@ async def importar_datos(session: AsyncSession, datos):
         await session.execute(insert(WifiPoint), registros)
         await session.commit()
 
-        logger.info(f"✅ Se importaron {len(registros)} registros correctamente.")
+        logger.info(f"✅ Se importaron los registros correctamente.")
+
     except SQLAlchemyError as e:
         await session.rollback()
         logger.error(f"Error al insertar datos en la base de datos: {str(e)}")

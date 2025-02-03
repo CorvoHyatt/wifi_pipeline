@@ -9,4 +9,5 @@ python-dotenv
 
 # Para pruebas
 pytest
-httpx
+pytest-asyncio
+httpx>=0.23.0
