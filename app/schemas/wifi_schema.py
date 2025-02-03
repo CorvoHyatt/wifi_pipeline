@@ -1,7 +1,6 @@
 import strawberry
 from typing import List, Optional
 from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.wifi import WifiPoint
 from math import radians, sin, cos, sqrt, atan2
@@ -10,6 +9,7 @@ from math import radians, sin, cos, sqrt, atan2
 # Tipo GraphQL para los puntos WiFi
 @strawberry.type
 class WifiPointType:
+    uuid: str  # ✅ Se añadió este campo
     id: str
     programa: str
     fecha_instalacion: Optional[str]
@@ -37,25 +37,32 @@ class Query:
     @strawberry.field
     async def puntos_wifi(self, limit: int = 10, offset: int = 0) -> List[WifiPointType]:
         async for session in get_db():
-            result = await session.execute(select(WifiPoint).offset(offset).limit(limit))
-            return [WifiPointType(**row.__dict__) for row in result.scalars().all()]
+            result = await session.execute(
+                select(WifiPoint).offset(offset).limit(limit)
+            )
+            return [WifiPointType(**row.to_dict()) for row in result.scalars().all()]
 
-    # 2. Consultar un punto WiFi por ID
+    # 2. Consultar puntos WiFi por ID
     @strawberry.field
-    async def punto_wifi_por_id(self, id: str) -> Optional[WifiPointType]:
+    async def puntos_wifi_por_id(self, id: str) -> List[WifiPointType]:
         async for session in get_db():
-            result = await session.execute(select(WifiPoint).where(WifiPoint.id == id))
-            punto = result.scalar_one_or_none()
-            return WifiPointType(**punto.__dict__) if punto else None
+            result = await session.execute(
+                select(WifiPoint).where(WifiPoint.id.ilike(f"%{id}%"))
+            )
+            puntos = result.scalars().all()
+            return [WifiPointType(**p.to_dict()) for p in puntos]
 
     # 3. Listar puntos WiFi por colonia (paginado)
     @strawberry.field
     async def puntos_wifi_por_colonia(self, colonia: str, limit: int = 10, offset: int = 0) -> List[WifiPointType]:
         async for session in get_db():
             result = await session.execute(
-                select(WifiPoint).where(WifiPoint.colonia.ilike(f"%{colonia}%")).offset(offset).limit(limit)
+                select(WifiPoint)
+                .where(WifiPoint.colonia.ilike(f"%{colonia}%"))
+                .offset(offset)
+                .limit(limit)
             )
-            return [WifiPointType(**row.__dict__) for row in result.scalars().all()]
+            return [WifiPointType(**row.to_dict()) for row in result.scalars().all()]
 
     # 4. Listar puntos WiFi ordenados por proximidad
     @strawberry.field
@@ -63,14 +70,13 @@ class Query:
         async for session in get_db():
             result = await session.execute(select(WifiPoint))
             puntos = result.scalars().all()
-
-            # Ordenar puntos por distancia usando Haversine
+            puntos_validos = [p for p in puntos if p.latitud is not None and p.longitud is not None]
             puntos_ordenados = sorted(
-                puntos,
+                puntos_validos,
                 key=lambda p: calcular_distancia(lat, lon, p.latitud, p.longitud)
             )
 
-            return [WifiPointType(**p.__dict__) for p in puntos_ordenados[:limit]]
+            return [WifiPointType(**p.to_dict()) for p in puntos_ordenados[:limit]]
 
 
 # Definición del esquema

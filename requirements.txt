@@ -4,7 +4,7 @@ strawberry-graphql
 uvicorn
 sqlalchemy
 asyncpg
-psycopg2
+psycopg2-binary
 python-dotenv
 
 # Para pruebas

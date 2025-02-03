@@ -5,7 +5,8 @@ from app.models.wifi import WifiPoint
 from app.database import get_db
 import asyncio
 
-CSV_FILE = "puntos_wifi_cdmx.csv"
+
+CSV_FILE = "app/puntos_wifi_cdmx.csv"
 
 # Función para leer el CSV
 def leer_csv(archivo):
@@ -14,12 +15,19 @@ def leer_csv(archivo):
 
 # Transformar cada fila del CSV en un diccionario listo para la BD
 def transformar_fila(fila):
+    try:
+        latitud = float(fila["latitud"]) if fila["latitud"] not in ("NA", "", None) else None
+        longitud = float(fila["longitud"]) if fila["longitud"] not in ("NA", "", None) else None
+    except ValueError:
+        print(f"Error al convertir latitud/longitud en fila: {fila}")
+        return None  # Ignorar filas con datos inválidos
+
     return {
         "id": fila["id"],
         "programa": fila["programa"],
         "fecha_instalacion": fila["fecha_instalacion"] if fila["fecha_instalacion"] != "NA" else None,
-        "latitud": float(fila["latitud"]),
-        "longitud": float(fila["longitud"]),
+        "latitud": latitud,
+        "longitud": longitud,
         "colonia": fila["colonia"] or None,
         "alcaldia": fila["alcaldia"] or None
     }
