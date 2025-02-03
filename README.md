@@ -141,5 +141,5 @@ Este proyecto está bajo la [MIT License](LICENSE).
 
 ## ✨ Autor
 
-- **Desarrollador:** [Tu Nombre]
-- **Contacto:** tu-email@ejemplo.com
+- **Desarrollador:** Raul Ruvalcaba
+- **Contacto:** corvohyatt@gmail.com
