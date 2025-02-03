@@ -1,162 +1,139 @@
-# 📱 WiFi CDMX Data Pipeline
+# 🌐 API de Puntos WiFi CDMX
 
-Este proyecto es un **data pipeline** diseñado para procesar y exponer información sobre los puntos de acceso WiFi en la Ciudad de México. La API está construida con **FastAPI**, **GraphQL** (Strawberry), y utiliza **PostgreSQL** para el almacenamiento de datos. Todo el entorno se gestiona con **Docker** y **Docker Compose**.
+Esta API proporciona acceso a los puntos de acceso WiFi de la Ciudad de México. Se ha desarrollado utilizando **FastAPI**, **SQLAlchemy**, **PostgreSQL**, y **GraphQL**.
 
 ## 🚀 Características
 
-- Procesamiento de datos de puntos WiFi desde un archivo CSV.
-- Almacenamiento en una base de datos PostgreSQL.
-- API GraphQL para consultas flexibles.
-- Consultas optimizadas por proximidad geográfica utilizando la fórmula de Haversine.
+- **GraphQL API** para consultas flexibles.
+- **Base de datos PostgreSQL** para almacenamiento eficiente.
+- **Importación automática de datos** desde un archivo CSV.
+- **Manejo de errores robusto** para operaciones de base de datos y consultas.
+- **Pruebas unitarias** con `pytest` y `httpx`.
 
 ---
 
-## 👤 Estructura del Proyecto
+## 📦 Requisitos
 
-```
-wifi_pipeline/
-├── app/
-│   ├── models/              # Definición de modelos de la base de datos
-│   ├── schemas/             # Esquema de GraphQL
-│   ├── database.py          # Configuración de la base de datos
-│   ├── data_importer.py     # Script para importar datos desde CSV
-│   └── main.py              # Configuración principal de FastAPI
-├── puntos_wifi_cdmx.csv     # Dataset de puntos WiFi
-├── Dockerfile               # Imagen de la API
-├── docker-compose.yml       # Orquestación de contenedores
-└── requirements.txt         # Dependencias del proyecto
-```
+- **Docker** y **Docker Compose** instalados.
 
----
+## 🚧 Configuración del Entorno
 
-## ⚙️ Configuración y Ejecución
+1. Clonar el repositorio:
 
-### 1️⃣ Prerrequisitos
+   ```bash
+   git clone https://github.com/CorvoHyatt/wifi_pipeline
+   cd api-wifi
+   ```
 
-- [Docker](https://www.docker.com/)
-- [Docker Compose](https://docs.docker.com/compose/)
+2. Configurar variables de entorno en un archivo `.env`:
 
-### 2️⃣ Clonar el Repositorio
+   ```env
+   DATABASE_URL=postgresql+asyncpg://wifi_user:wifi_pass@db:5432/wifi_db
+   ```
 
-```bash
-git clone https://github.com/tu-usuario/wifi_pipeline.git
-cd wifi_pipeline
-```
+3. Asegúrate de que el archivo `puntos_wifi_cdmx.csv` está ubicado en `app/puntos_wifi_cdmx.csv`.
 
-### 3️⃣ Configurar Variables de Entorno
+## 🚩 Ejecución del Proyecto
 
-Asegúrate de tener un archivo `.env` (o variables configuradas en `docker-compose.yml`):
-
-```env
-POSTGRES_USER=wifi_user
-POSTGRES_PASSWORD=wifi_pass
-POSTGRES_DB=wifi_db
-```
-
-### 4️⃣ Construir y Ejecutar el Proyecto
+Iniciar la aplicación usando Docker Compose:
 
 ```bash
 docker-compose up --build
 ```
 
-Esto inicializará:
+Esto:
 
-- **PostgreSQL** en `localhost:5432`
-- **API GraphQL** en `http://localhost:8000/graphql`
+- Iniciará la API en `http://localhost:8000`
+- Inicializará la base de datos.
+- Importará los datos desde el CSV automáticamente.
 
----
+## 🔍 Exploración de la API
 
-## 📃 API GraphQL
+Visita [http://localhost:8000/graphql](http://localhost:8000/graphql) para acceder a la consola de GraphQL.
 
-Accede a la interfaz de GraphQL (GraphQL Playground) en:
+### Ejemplos de Consultas:
 
+1. **Obtener Puntos WiFi:**
+
+   ```graphql
+   query {
+     puntosWifi(limit: 5, offset: 0) {
+       id
+       programa
+       latitud
+       longitud
+     }
+   }
+   ```
+
+2. **Buscar por ID:**
+
+   ```graphql
+   query {
+     puntosWifiPorId(id: "TEST001") {
+       id
+       programa
+       colonia
+     }
+   }
+   ```
+
+3. **Filtrar por Colonia:**
+
+   ```graphql
+   query {
+     puntosWifiPorColonia(colonia: "Centro") {
+       id
+       alcaldia
+     }
+   }
+   ```
+
+4. **Puntos Cercanos:**
+   ```graphql
+   query {
+     puntosWifiCercanos(lat: 19.4326, lon: -99.1332, limit: 10) {
+       id
+       programa
+       latitud
+       longitud
+     }
+   }
+   ```
+
+## 🐞 Manejo de Errores
+
+- **Errores de Base de Datos:** Manejo de `OperationalError` y `SQLAlchemyError`.
+- **Errores de Archivo:** Control de `FileNotFoundError` para el archivo CSV.
+- **Validaciones de Parámetros:** Verificación de latitud y longitud inválidas en consultas.
+
+## 💪 Pruebas Unitarias
+
+Las pruebas están escritas usando `pytest`, `pytest-asyncio` y `httpx`.
+
+### Ejecución de Pruebas:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from tests
 ```
-http://localhost:8000/graphql
-```
 
-### 📍 Ejemplos de Consultas
+### Estructura de las Pruebas:
 
-#### 1️⃣ Obtener Puntos WiFi (paginado)
+- **API:** Pruebas de la raíz de la API.
+- **Base de Datos:** Verificación de conexión e inserción de datos.
+- **GraphQL:** Pruebas de queries básicas y avanzadas.
 
-```graphql
-query {
-  puntosWifi(limit: 5, offset: 0) {
-    uuid
-    id
-    programa
-    latitud
-    longitud
-    colonia
-    alcaldia
-  }
-}
-```
+## 🌌 Futuras Mejoras
 
-#### 2️⃣ Buscar por ID
-
-```graphql
-query {
-  puntoWifiPorId(id: "AICMT1-GW001") {
-    uuid
-    programa
-    latitud
-    longitud
-    alcaldia
-  }
-}
-```
-
-#### 3️⃣ Puntos WiFi por Colonia
-
-```graphql
-query {
-  puntosWifiPorColonia(colonia: "CENTRO", limit: 5) {
-    id
-    programa
-    colonia
-    alcaldia
-  }
-}
-```
-
-#### 4️⃣ Puntos WiFi Cercanos
-
-```graphql
-query {
-  puntosWifiCercanos(lat: 19.4326, lon: -99.1332, limit: 10) {
-    id
-    programa
-    latitud
-    longitud
-  }
-}
-```
-
----
-
-## 📝 Consideraciones Técnicas
-
-- Los datos inválidos (latitud/longitud `null` o incorrectos) son filtrados automáticamente.
-- Se utiliza la fórmula de Haversine para cálculos de proximidad geográfica.
-- El contenedor de la base de datos PostgreSQL se inicializa automáticamente con la estructura y datos.
-
----
-
-## 🙋‍♂️ Tecnologías Utilizadas
-
-- **Python 3.10**
-- **FastAPI** + **Strawberry GraphQL**
-- **PostgreSQL** + **SQLAlchemy (Async)**
-- **Docker** & **Docker Compose**
-
----
-
-## 🙋‍♂️ Contribuciones
-
-Las contribuciones son bienvenidas. Puedes abrir un _pull request_ o reportar problemas a través de _issues_.
-
----
+- Implementación de paginación avanzada.
+- Autenticación y autorización.
+- Deploy en un entorno en la nube.
 
 ## 📄 Licencia
 
-Este proyecto está bajo la licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más información.
+Este proyecto está bajo la [MIT License](LICENSE).
+
+## ✨ Autor
+
+- **Desarrollador:** [Tu Nombre]
+- **Contacto:** tu-email@ejemplo.com
