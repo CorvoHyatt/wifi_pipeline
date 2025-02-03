@@ -33,6 +33,12 @@ Esta API proporciona acceso a los puntos de acceso WiFi de la Ciudad de México.
 
 3. Asegúrate de que el archivo `puntos_wifi_cdmx.csv` está ubicado en `app/puntos_wifi_cdmx.csv`.
 
+## 📊 Diagrama General de la Solución
+
+Este diagrama muestra la arquitectura general del proyecto, incluyendo los servicios, la base de datos y la interacción con el usuario.
+
+![Diagrama de la Solución](mermaid-diagram-2025-02-03-021654.png)
+
 ## 🚩 Ejecución del Proyecto
 
 Iniciar la aplicación usando Docker Compose:
