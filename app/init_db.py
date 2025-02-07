@@ -9,13 +9,13 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-async def crear_tablas():
+async def crear_tablas() -> None:
     """Crea las tablas definidas en los modelos."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("✅ Tablas creadas correctamente.")
 
-async def init_db():
+async def init_db() -> None:
     """Inicializa la base de datos."""
     try:
         logger.info("🚀 Iniciando la inicialización de la base de datos...")

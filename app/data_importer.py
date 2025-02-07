@@ -9,13 +9,14 @@ from app.database import get_db
 from dotenv import load_dotenv
 import logging
 import os
+from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 load_dotenv()
 
 CSV_FILE = os.getenv("CSV_FILE")
 
-def leer_csv(file_path):
+def leer_csv(file_path: str) -> List[Dict[str, str]]:
     try:
         with open(file_path, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -27,7 +28,7 @@ def leer_csv(file_path):
         logger.error(f"❌ Error al leer el archivo CSV: {str(e)}")
         return []
 
-def transformar_fila(fila):
+def transformar_fila(fila: Dict[str, str]) -> Optional[Dict[str, Any]]:
     try:
         latitud = float(fila["latitud"]) if fila["latitud"] not in ("NA", "", None) else None
         longitud = float(fila["longitud"]) if fila["longitud"] not in ("NA", "", None) else None
@@ -48,7 +49,7 @@ def transformar_fila(fila):
         logger.warning(f"Fila inválida: {fila} - Error: {str(e)}")
         return None  # Ignorar filas con errores
 
-async def importar_datos(session: AsyncSession, datos):
+async def importar_datos(session: AsyncSession, datos: List[Dict[str, Any]]) -> None:
     try:
         # Verificar si los datos ya han sido importados
         result = await session.execute(select(ImportControl).where(ImportControl.id == True))
@@ -59,7 +60,7 @@ async def importar_datos(session: AsyncSession, datos):
             return
 
         registros = [r for r in map(transformar_fila, datos) if r is not None]
-        await session.execute(insert(WifiPoint),registros)
+        await session.execute(insert(WifiPoint), registros)
         await session.commit()
 
         # Marcar los datos como importados
@@ -78,7 +79,7 @@ async def importar_datos(session: AsyncSession, datos):
     except Exception as e:
         logger.error(f"Error inesperado durante la importación: {str(e)}")
 
-async def main():
+async def main() -> None:
     datos = leer_csv(CSV_FILE)
     if datos:
         async for session in get_db():

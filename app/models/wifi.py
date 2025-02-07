@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Float
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from app.database import Base
+from typing import Dict, Any
 
 class WifiPoint(Base):
     __tablename__ = "wifi_points"  # Nombre de la tabla en la base de datos
@@ -15,7 +16,7 @@ class WifiPoint(Base):
     colonia = Column(String, nullable=True)
     alcaldia = Column(String, nullable=True)
     
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "uuid": str(self.uuid),
             "id": self.id,

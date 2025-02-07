@@ -6,13 +6,14 @@ from app.data_importer import main as importar_datos  # Importar la función pri
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from contextlib import asynccontextmanager
 import logging
+from typing import AsyncGenerator
 
 # Configuración del registro de errores
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         logger.info("🚀 Iniciando la aplicación y configurando la base de datos...")
         await init_db()          # Crear tablas si no existen
@@ -45,5 +46,5 @@ app.include_router(graphql_app, prefix="/graphql")
 
 # Ruta raíz para pruebas rápidas
 @app.get("/")
-def read_root():
+def read_root() -> dict:
     return {"message": "🌐 API de Puntos WiFi - Visita /graphql para la consola de GraphQL"}
