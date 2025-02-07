@@ -1,31 +1,32 @@
 import csv
+from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import insert
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.dialects.postgresql import insert
 from app.models.wifi import WifiPoint
+from app.models.control import ImportControl
 from app.database import get_db
-import asyncio
+from dotenv import load_dotenv
 import logging
+import os
 
-# Configuración del registro de errores
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+load_dotenv()
 
-CSV_FILE = "app/puntos_wifi_cdmx.csv"
+CSV_FILE = os.getenv("CSV_FILE")
 
-# Función para leer el CSV
-def leer_csv(archivo):
+def leer_csv(file_path):
     try:
-        with open(archivo, encoding='utf-8') as f:
-            return list(csv.DictReader(f))
+        with open(file_path, newline='', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            return [row for row in reader]
     except FileNotFoundError:
-        logger.error(f"El archivo '{archivo}' no se encontró.")
+        logger.error(f"❌ No se encontró el archivo CSV en la ruta especificada: {file_path}")
         return []
     except Exception as e:
-        logger.error(f"Error al leer el archivo CSV: {str(e)}")
+        logger.error(f"❌ Error al leer el archivo CSV: {str(e)}")
         return []
 
-# Transformar cada fila del CSV en un diccionario listo para la BD
 def transformar_fila(fila):
     try:
         latitud = float(fila["latitud"]) if fila["latitud"] not in ("NA", "", None) else None
@@ -47,19 +48,29 @@ def transformar_fila(fila):
         logger.warning(f"Fila inválida: {fila} - Error: {str(e)}")
         return None  # Ignorar filas con errores
 
-# Importar los datos de forma asincrónica
 async def importar_datos(session: AsyncSession, datos):
     try:
-        registros = [r for r in map(transformar_fila, datos) if r is not None]  # Filtrar registros válidos
+        # Verificar si los datos ya han sido importados
+        result = await session.execute(select(ImportControl).where(ImportControl.id == True))
+        control = result.scalar()
 
-        if not registros:
-            logger.warning("No hay registros válidos para importar.")
+        if control and control.imported:
+            logger.info("Los datos ya han sido importados previamente.")
             return
 
-        await session.execute(insert(WifiPoint), registros)
+        registros = [r for r in map(transformar_fila, datos) if r is not None]
+        await session.execute(insert(WifiPoint),registros)
         await session.commit()
 
-        logger.info(f"✅ Se importaron los registros correctamente.")
+        # Marcar los datos como importados
+        if not control:
+            control = ImportControl(id=True, imported=True)
+            session.add(control)
+        else:
+            control.imported = True
+        await session.commit()
+
+        logger.info(f"✅ Se importaron {len(registros)} registros correctamente.")
 
     except SQLAlchemyError as e:
         await session.rollback()
@@ -67,7 +78,6 @@ async def importar_datos(session: AsyncSession, datos):
     except Exception as e:
         logger.error(f"Error inesperado durante la importación: {str(e)}")
 
-# Orquestador principal
 async def main():
     datos = leer_csv(CSV_FILE)
     if datos:
@@ -75,6 +85,3 @@ async def main():
             await importar_datos(session, datos)
     else:
         logger.warning("No se encontraron datos para importar.")
-
-if __name__ == "__main__":
-    asyncio.run(main())
