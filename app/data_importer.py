@@ -9,24 +9,23 @@ from app.database import get_db
 from dotenv import load_dotenv
 import logging
 import os
-from typing import List, Dict, Any, Optional
+from typing import Generator, List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 load_dotenv()
 
 CSV_FILE = os.getenv("CSV_FILE")
 
-def leer_csv(file_path: str) -> List[Dict[str, str]]:
+def leer_csv(file_path: str) -> Generator[Dict[str, str], None, None]:
     try:
         with open(file_path, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
-            return [row for row in reader]
+            for row in reader:
+                yield row
     except FileNotFoundError:
         logger.error(f"❌ No se encontró el archivo CSV en la ruta especificada: {file_path}")
-        return []
     except Exception as e:
         logger.error(f"❌ Error al leer el archivo CSV: {str(e)}")
-        return []
 
 def transformar_fila(fila: Dict[str, str]) -> Optional[Dict[str, Any]]:
     try:
@@ -49,7 +48,9 @@ def transformar_fila(fila: Dict[str, str]) -> Optional[Dict[str, Any]]:
         logger.warning(f"Fila inválida: {fila} - Error: {str(e)}")
         return None  # Ignorar filas con errores
 
-async def importar_datos(session: AsyncSession, datos: List[Dict[str, Any]]) -> None:
+# app/data_importer.py
+
+async def importar_datos(session: AsyncSession, datos: Generator[Dict[str, str], None, None]) -> None:
     try:
         # Verificar si los datos ya han sido importados
         result = await session.execute(select(ImportControl).where(ImportControl.id == True))
@@ -81,8 +82,5 @@ async def importar_datos(session: AsyncSession, datos: List[Dict[str, Any]]) -> 
 
 async def main() -> None:
     datos = leer_csv(CSV_FILE)
-    if datos:
-        async for session in get_db():
-            await importar_datos(session, datos)
-    else:
-        logger.warning("No se encontraron datos para importar.")
+    async for session in get_db():
+        await importar_datos(session, datos)
