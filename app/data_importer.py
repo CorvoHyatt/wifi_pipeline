@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 CSV_FILE = os.getenv("CSV_FILE")
+BATCH_SIZE = 1000  # Tamaño del lote
 
 def leer_csv(file_path: str) -> Generator[Dict[str, str], None, None]:
     try:
@@ -48,6 +49,18 @@ def transformar_fila(fila: Dict[str, str]) -> Optional[Dict[str, Any]]:
         logger.warning(f"Fila inválida: {fila} - Error: {str(e)}")
         return None  # Ignorar filas con errores
 
+async def async_batch_generator(data: Generator[Dict[str, str], None, None], batch_size: int) -> Generator[List[Dict[str, Any]], None, None]:
+    batch = []
+    for item in data:
+        transformed_item = transformar_fila(item)
+        if transformed_item is not None:
+            batch.append(transformed_item)
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
 # app/data_importer.py
 
 async def importar_datos(session: AsyncSession, datos: Generator[Dict[str, str], None, None]) -> None:
@@ -60,9 +73,9 @@ async def importar_datos(session: AsyncSession, datos: Generator[Dict[str, str],
             logger.info("Los datos ya han sido importados previamente.")
             return
 
-        registros = [r for r in map(transformar_fila, datos) if r is not None]
-        await session.execute(insert(WifiPoint), registros)
-        await session.commit()
+        async for batch in async_batch_generator(datos, BATCH_SIZE):
+            await session.execute(insert(WifiPoint), batch)
+            await session.commit()
 
         # Marcar los datos como importados
         if not control:
@@ -72,7 +85,7 @@ async def importar_datos(session: AsyncSession, datos: Generator[Dict[str, str],
             control.imported = True
         await session.commit()
 
-        logger.info(f"✅ Se importaron {len(registros)} registros correctamente.")
+        logger.info("✅ Se importaron los registros correctamente.")
 
     except SQLAlchemyError as e:
         await session.rollback()
